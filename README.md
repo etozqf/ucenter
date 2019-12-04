@@ -1,8 +1,8 @@
 ## Ucenter Client For Laravel5.7+
 
-说明：本项目在 https://github.com/noxue/ucenter 项目的基础上做了修改。
+说明：本项目在 https://github.com/ershimei/ucenter 项目的基础上做了修改。
 
-原项目不存在手机号字段，所以加入手机号字段。
+原项目数据库查询有问题。
 
 运行命令：
 ~~~
