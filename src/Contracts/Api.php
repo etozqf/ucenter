@@ -1,4 +1,4 @@
-<?php namespace Ershimei\Ucenter\Contracts;
+<?php namespace Etozqf\Ucenter\Contracts;
 
 interface Api
 {

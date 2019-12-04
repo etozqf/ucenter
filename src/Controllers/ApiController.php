@@ -1,9 +1,9 @@
-<?php namespace Ershimei\Ucenter\Controllers;
+<?php namespace Etozqf\Ucenter\Controllers;
 
 use App\Http\Controllers\Controller;
-use Ershimei\Ucenter\Contracts\Api;
+use Etozqf\Ucenter\Contracts\Api;
 use Request,Config;
-use Ershimei\Ucenter\Services\Help;
+use Etozqf\Ucenter\Services\Help;
 
 class ApiController extends Controller 
 {

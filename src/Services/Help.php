@@ -1,6 +1,6 @@
 <?php
 
-namespace Ershimei\Ucenter\Services;
+namespace Etozqf\Ucenter\Services;
 
 trait Help{
 

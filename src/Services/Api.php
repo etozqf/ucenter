@@ -1,8 +1,8 @@
-<?php namespace Ershimei\Ucenter\Services;
+<?php namespace Etozqf\Ucenter\Services;
 
-use Ershimei\Ucenter\Services\Help;
+use Etozqf\Ucenter\Services\Help;
 
-class Api implements \Ershimei\Ucenter\Contracts\Api
+class Api implements \Etozqf\Ucenter\Contracts\Api
 {
     use Help;
 

@@ -1,17 +1,17 @@
 {
-    "name": "ershimei/ucenter",
+    "name": "etozqf/ucenter",
     "description": "ucenter client for laravel5.7+",
     "license": "MIT",
     "authors": [
         {
-            "name": "Ershimei",
+            "name": "Etozqf",
             "email": "798084883@qq.com",
             "role": "Developer"
         }
     ],
     "autoload": {
         "psr-4": {
-            "Ershimei\\Ucenter\\": "src/"
+            "Etozqf\\Ucenter\\": "src/"
         }
     },
     "require": {
