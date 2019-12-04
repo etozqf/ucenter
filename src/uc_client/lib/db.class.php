@@ -1,172 +1,199 @@
 <?php
 
 /*
-	[UCenter] (C)2001-2099 Comsenz Inc.
-	This is NOT a freeware, use is subject to license terms
+    [UCenter] (C)2001-2099 Comsenz Inc.
+    This is NOT a freeware, use is subject to license terms
 
-	$Id: db.class.php 1059 2011-03-01 07:25:09Z monkey $
+    $Id: db.class.php 1059 2011-03-01 07:25:09Z monkey $
 */
 
+class ucclient_db
+{
+    public $querynum = 0;
+    public $link;
+    public $histories;
 
-class ucclient_db {
-	var $querynum = 0;
-	var $link;
-	var $histories;
+    public $dbhost;
+    public $dbuser;
+    public $dbpw;
+    public $dbcharset;
+    public $pconnect;
+    public $tablepre;
+    public $time;
 
-	var $dbhost;
-	var $dbuser;
-	var $dbpw;
-	var $dbcharset;
-	var $pconnect;
-	var $tablepre;
-	var $time;
+    public $goneaway = 5;
 
-	var $goneaway = 5;
+    public function connect($dbhost, $dbuser, $dbpw, $dbname = '', $dbcharset = '', $pconnect = 0, $tablepre = '', $time = 0)
+    {
+        $this->dbhost = $dbhost;
+        $this->dbuser = $dbuser;
+        $this->dbpw = $dbpw;
+        $this->dbname = $dbname;
+        $this->dbcharset = $dbcharset;
+        $this->pconnect = $pconnect;
+        $this->tablepre = $tablepre;
+        $this->time = $time;
 
-	function connect($dbhost, $dbuser, $dbpw, $dbname = '', $dbcharset = '', $pconnect = 0, $tablepre='', $time = 0) {
-		$this->dbhost = $dbhost;
-		$this->dbuser = $dbuser;
-		$this->dbpw = $dbpw;
-		$this->dbname = $dbname;
-		$this->dbcharset = $dbcharset;
-		$this->pconnect = $pconnect;
-		$this->tablepre = $tablepre;
-		$this->time = $time;
+        if ($pconnect) {
+            if (!$this->link = mysqli_pconnect($dbhost, $dbuser, $dbpw)) {
+                $this->halt('Can not connect to MySQL server');
+            }
+        } else {
+            if (!$this->link = mysqli_connect($dbhost, $dbuser, $dbpw)) {
+                $this->halt('Can not connect to MySQL server');
+            }
+        }
 
-		if($pconnect) {
-			if(!$this->link = mysqli_pconnect($dbhost, $dbuser, $dbpw)) {
-				$this->halt('Can not connect to MySQL server');
-			}
-		} else {
-			if(!$this->link = mysqli_connect($dbhost, $dbuser, $dbpw)) {
-				$this->halt('Can not connect to MySQL server');
-			}
-		}
+        if ($this->version() > '4.1') {
+            if ($dbcharset) {
+                mysqli_query('SET character_set_connection='.$dbcharset.', character_set_results='.$dbcharset.', character_set_client=binary', $this->link);
+            }
 
-		if($this->version() > '4.1') {
-			if($dbcharset) {
-				mysqli_query("SET character_set_connection=".$dbcharset.", character_set_results=".$dbcharset.", character_set_client=binary", $this->link);
-			}
+            if ($this->version() > '5.0.1') {
+                mysqli_query("SET sql_mode=''", $this->link);
+            }
+        }
 
-			if($this->version() > '5.0.1') {
-				mysqli_query("SET sql_mode=''", $this->link);
-			}
-		}
+        if ($dbname) {
+            mysqli_select_db($dbname, $this->link);
+        }
+    }
 
-		if($dbname) {
-			mysqli_select_db($dbname, $this->link);
-		}
+    public function fetch_array($query, $result_type = mysqli_ASSOC)
+    {
+        return mysqli_fetch_array($query, $result_type);
+    }
 
-	}
+    public function result_first($sql)
+    {
+        $query = $this->query($sql);
 
-	function fetch_array($query, $result_type = mysqli_ASSOC) {
-		return mysqli_fetch_array($query, $result_type);
-	}
+        return $this->result($query, 0);
+    }
 
-	function result_first($sql) {
-		$query = $this->query($sql);
-		return $this->result($query, 0);
-	}
+    public function fetch_first($sql)
+    {
+        $query = $this->query($sql);
 
-	function fetch_first($sql) {
-		$query = $this->query($sql);
-		return $this->fetch_array($query);
-	}
+        return $this->fetch_array($query);
+    }
 
-	function fetch_all($sql, $id = '') {
-		$arr = array();
-		$query = $this->query($sql);
-		while($data = $this->fetch_array($query)) {
-			$id ? $arr[$data[$id]] = $data : $arr[] = $data;
-		}
-		return $arr;
-	}
+    public function fetch_all($sql, $id = '')
+    {
+        $arr = array();
+        $query = $this->query($sql);
+        while ($data = $this->fetch_array($query)) {
+            $id ? $arr[$data[$id]] = $data : $arr[] = $data;
+        }
 
-	function cache_gc() {
-		$this->query("DELETE FROM {$this->tablepre}sqlcaches WHERE expiry<$this->time");
-	}
+        return $arr;
+    }
 
-	function query($sql, $type = '', $cachetime = FALSE) {
-		$func = $type == 'UNBUFFERED' && @function_exists('mysqli_unbuffered_query') ? 'mysqli_unbuffered_query' : 'mysqli_query';
-		if(!($query = $func($sql, $this->link)) && $type != 'SILENT') {
-			$this->halt('MySQL Query Error', $sql);
-		}
-		$this->querynum++;
-		$this->histories[] = $sql;
-		return $query;
-	}
+    public function cache_gc()
+    {
+        $this->query("DELETE FROM {$this->tablepre}sqlcaches WHERE expiry<$this->time");
+    }
 
-	function affected_rows() {
-		return mysqli_affected_rows($this->link);
-	}
+    public function query($sql, $type = '', $cachetime = false)
+    {
+        $func = $type == 'UNBUFFERED' && @function_exists('mysqli_unbuffered_query') ? 'mysqli_unbuffered_query' : 'mysqli_query';
 
-	function error() {
-		return (($this->link) ? mysqli_error($this->link) : mysqli_error());
-	}
+        if ($func == 'mysqli_query' && !($query = $func($this->link, $sql)) && $type != 'SILENT') {
+            $this->halt('MySQL Query Error', $sql);
+        } elseif (!($query = $func($sql, $this->link)) && $type != 'SILENT') {
+            $this->halt('MySQL Query Error', $sql);
+        }
+        ++$this->querynum;
+        $this->histories[] = $sql;
 
-	function errno() {
-		return intval(($this->link) ? mysqli_errno($this->link) : mysqli_errno());
-	}
+        return $query;
+    }
 
-	function result($query, $row) {
-		$query = @mysqli_result($query, $row);
-		return $query;
-	}
+    public function affected_rows()
+    {
+        return mysqli_affected_rows($this->link);
+    }
 
-	function num_rows($query) {
-		$query = mysqli_num_rows($query);
-		return $query;
-	}
+    public function error()
+    {
+        return ($this->link) ? mysqli_error($this->link) : mysqli_error();
+    }
 
-	function num_fields($query) {
-		return mysqli_num_fields($query);
-	}
+    public function errno()
+    {
+        return intval(($this->link) ? mysqli_errno($this->link) : mysqli_errno());
+    }
 
-	function free_result($query) {
-		return mysqli_free_result($query);
-	}
+    public function result($query, $row)
+    {
+        $query = @mysqli_result($query, $row);
 
-	function insert_id() {
-		return ($id = mysqli_insert_id($this->link)) >= 0 ? $id : $this->result($this->query("SELECT last_insert_id()"), 0);
-	}
+        return $query;
+    }
 
-	function fetch_row($query) {
-		$query = mysqli_fetch_row($query);
-		return $query;
-	}
+    public function num_rows($query)
+    {
+        $query = mysqli_num_rows($query);
 
-	function fetch_fields($query) {
-		return mysqli_fetch_field($query);
-	}
+        return $query;
+    }
 
-	function version() {
-		return mysqli_get_server_info($this->link);
-	}
+    public function num_fields($query)
+    {
+        return mysqli_num_fields($query);
+    }
 
-	function close() {
-		return mysqli_close($this->link);
-	}
+    public function free_result($query)
+    {
+        return mysqli_free_result($query);
+    }
 
-	function halt($message = '', $sql = '') {
-		$error = mysqli_error();
-		$errorno = mysqli_errno();
-		if($errorno == 2006 && $this->goneaway-- > 0) {
-			$this->connect($this->dbhost, $this->dbuser, $this->dbpw, $this->dbname, $this->dbcharset, $this->pconnect, $this->tablepre, $this->time);
-			$this->query($sql);
-		} else {
-			$s = '';
-			if($message) {
-				$s = "<b>UCenter info:</b> $message<br />";
-			}
-			if($sql) {
-				$s .= '<b>SQL:</b>'.htmlspecialchars($sql).'<br />';
-			}
-			$s .= '<b>Error:</b>'.$error.'<br />';
-			$s .= '<b>Errno:</b>'.$errorno.'<br />';
-			$s = str_replace(UC_DBTABLEPRE, '[Table]', $s);
-			exit($s);
-		}
-	}
+    public function insert_id()
+    {
+        return ($id = mysqli_insert_id($this->link)) >= 0 ? $id : $this->result($this->query('SELECT last_insert_id()'), 0);
+    }
+
+    public function fetch_row($query)
+    {
+        $query = mysqli_fetch_row($query);
+
+        return $query;
+    }
+
+    public function fetch_fields($query)
+    {
+        return mysqli_fetch_field($query);
+    }
+
+    public function version()
+    {
+        return mysqli_get_server_info($this->link);
+    }
+
+    public function close()
+    {
+        return mysqli_close($this->link);
+    }
+
+    public function halt($message = '', $sql = '')
+    {
+        $error = mysqli_error();
+        $errorno = mysqli_errno();
+        if ($errorno == 2006 && $this->goneaway-- > 0) {
+            $this->connect($this->dbhost, $this->dbuser, $this->dbpw, $this->dbname, $this->dbcharset, $this->pconnect, $this->tablepre, $this->time);
+            $this->query($sql);
+        } else {
+            $s = '';
+            if ($message) {
+                $s = "<b>UCenter info:</b> $message<br />";
+            }
+            if ($sql) {
+                $s .= '<b>SQL:</b>'.htmlspecialchars($sql).'<br />';
+            }
+            $s .= '<b>Error:</b>'.$error.'<br />';
+            $s .= '<b>Errno:</b>'.$errorno.'<br />';
+            $s = str_replace(UC_DBTABLEPRE, '[Table]', $s);
+            exit($s);
+        }
+    }
 }
-
-?>
